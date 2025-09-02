@@ -1,6 +1,6 @@
 /** @odoo-module */
 
-import {Component,onWillStart,useState} from "@odoo/owl";
+import {Component,onWillStart,useState,useRef} from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from '@web/core/utils/hooks';
 
@@ -22,7 +22,10 @@ export class TodoList extends Component {
         })
 
         this.model ="vit.todo"
+
         this.orm = useService("orm")
+
+        this.searchInput = useRef('search-input')
 
         onWillStart(async ()=>{
             this.fetchAllTasks()
@@ -38,12 +41,12 @@ export class TodoList extends Component {
         console.log(this.state.taskList)
     }
 
-    toggleTask(){
-
+    async toggleTask(e,task){
+        await this.orm.write(this.model,[task.id],{is_completed:e.target.checked })
     }
-
-    updateColor(){
-
+    
+    async updateColor(e,task){
+        await this.orm.write(this.model,[task.id],{color:e.target.value })
     }
 
     editTask(task){
@@ -72,11 +75,26 @@ export class TodoList extends Component {
     addTask(){
         this.state.activeId=false
         this.state.isEdit=false 
+        this.state.task={
+            name: '',
+            color: '#FF0000',
+            is_completed: false,
+            description: ''
+
+        }
 
     }
     
+    async searchTask(){
+        const text = this.searchInput.el.value 
+        this.state.taskList = await this.orm.searchRead(this.model,[['name','ilike',text]])
+    }
     
-    deleteTask(){
+    async deleteTask(task){
+        if (confirm("Are you sute to delete this task?")){
+            await this.orm.unlink(this.model,[task.id])
+            await this.fetchAllTasks()
+        }
 
     }
 }
